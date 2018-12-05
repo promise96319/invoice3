@@ -1,0 +1,245 @@
+<style lang="less">
+  .account-container {
+    background-color: rgba(245, 245, 245, 1);
+    padding: 1rpx 0 40rpx;
+    min-height: 100vh;
+    .company-container {
+      margin-top: 40rpx;
+      height: 290rpx;
+      background-color: #fff;
+      padding: 0 30rpx;
+      .company-header {
+        height: 110rpx;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 1px solid rgba(230,230,230,1);
+        .company-title {
+          display: flex;
+          align-items: center;
+          font-size: 30rpx;
+          color: #666;
+          font-weight: bold;
+          image {
+            width: 32rpx;
+            height: 32rpx;
+            margin-right: 12rpx;
+          }
+        }
+        .detail-btn {
+          width: 144rpx;
+          height: 56rpx;
+          background-color: #55ACEE;
+          border: none;
+          border-radius: 4px;
+          color: #fff;
+          line-height: 56rpx;
+          text-align: center;
+          font-size: 24rpx;
+          margin: 0;
+          padding: 0;
+        }
+      }
+      .company-body {
+        padding: 25rpx 0;
+        .row {
+          display: flex;
+          height: 65rpx;
+          align-items: center;
+          font-size: 26rpx;
+          color: #999;
+          .left-aside {
+            flex: 1;
+          }
+          .right-aside {
+            flex: 1;
+          }
+          text {
+            font-size: 30rpx;
+            color: #666;
+            font-weight: bold;
+          }
+        }
+      }
+    }
+  }
+</style>
+
+<template>
+  <view class="account-container">
+    <view class="company-container" wx:for="{{ totalCompany }}" wx:key="{{ item.id }}">
+      <view class="company-header">
+        <view class="company-title">
+          <image src="../../assets/images/company.png"></image>
+          <view>{{ item.companyName }}</view>
+        </view>
+        <view class="detail-btn" @tap="goToAccountDetail({{ item }})">查看详情</view>
+      </view>
+
+      <view class="company-body">
+        <view class="row">
+          <view class="left-aside">
+            税额合计：<text>{{ item.totalAmountInFiguers }}</text>元
+          </view>
+          <view class="right-aside">
+            发票总数：<text>{{ item.totalInvoiceNum }}</text>张
+          </view>
+        </view>
+        <view class="row">
+          <view class="left-aside">
+            未结账发票：<text>{{ item.uncheckedInvoice }}</text>张
+          </view>
+          <view class="right-aside">
+            可反结账发票：<text>{{ item.checkedoutInvoice }}</text>张
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+
+  export default class Login extends wepy.page {
+    config = {
+      navigationBarTitleText: '财务'
+    }
+
+    data = {
+      totalCompany: []
+    }
+
+    methods = {
+      goToAccountDetail(company) {
+        // // TODO:
+        const totalInvoiceData = [
+          {
+            "amountInFiguers": '12131', //价税合计
+            "serviceDetail": [],  //信息详情
+            "invoiceDate": '2018年2月2日', //开票日期
+            "invoiceNum": '2388442',  //发票号码
+            "purchaserName": '有方教育到几点',
+            "sellerName": '科技公司',
+            identity: 0,
+            status: 'unchecked',
+          },
+          {
+            "amountInFiguers": '12131', //价税合计
+            "serviceDetail": [],  //信息详情
+            "invoiceDate": '2018年2月2日', //开票日期
+            "invoiceNum": '2388442',  //发票号码
+            "purchaserName": '有方教育到几点',
+            "sellerName": '科技公司',
+            identity: 1,
+            status: 'checkedout'
+          },
+          {
+            "amountInFiguers": '12131', //价税合计
+            "serviceDetail": [],  //信息详情
+            "invoiceDate": '2018年2月2日', //开票日期
+            "invoiceNum": '2388442',  //发票号码
+            "purchaserName": '有方教育到几点',
+            "sellerName": '科技公司',
+            identity: 0,
+            status: 'unchecked'
+          },
+          {
+            "amountInFiguers": '12131', //价税合计
+            "serviceDetail": [],  //信息详情
+            "invoiceDate": '2018年2月2日', //开票日期
+            "invoiceNum": '2388442',  //发票号码
+            "purchaserName": '有方教育到几点',
+            "sellerName": '科技公司',
+            identity: 1,
+            status: 'checkedout'
+          },
+          {
+            "amountInFiguers": '12131', //价税合计
+            "serviceDetail": [],  //信息详情
+            "invoiceDate": '2018年2月2日', //开票日期
+            "invoiceNum": '2388442',  //发票号码
+            "purchaserName": '有方教育到几点',
+            "sellerName": '科技公司',
+            identity: 1,
+            status: 'unchecked'
+          },
+          {
+            "amountInFiguers": '12131', //价税合计
+            "serviceDetail": [],  //信息详情
+            "invoiceDate": '2018年2月2日', //开票日期
+            "invoiceNum": '2388442',  //发票号码
+            "purchaserName": '有方教育到几点',
+            "sellerName": '科技公司',
+            identity: 0,
+            status: 'checkedout'
+          },
+          {
+            "amountInFiguers": '12131', //价税合计
+            "serviceDetail": [],  //信息详情
+            "invoiceDate": '2018年2月2日', //开票日期
+            "invoiceNum": '2388442',  //发票号码
+            "purchaserName": '有方教育到几点',
+            "sellerName": '科技公司',
+            identity: 1,
+            status: 'unchecked'
+          },
+        ]
+
+        wepy.$store.dispatch({
+          type: 'UPDATETOTALINVOICE',
+          payload: totalInvoiceData
+        })
+
+        wx.navigateTo({
+          url: '../accountDetail/accountDetail?company=' + JSON.stringify(company)
+        })
+      }
+    }
+
+    async onLoad () {
+      this.totalCompany = [
+        {
+          id: '2',
+          companyName: '有方教育',
+          totalAmountInFiguers: '388374',
+          totalInvoiceNum: '245',
+          uncheckedInvoice: '200',
+          checkedoutInvoice: '45'
+        },
+        {
+          id: '2',
+          companyName: '有方教育',
+          totalAmountInFiguers: '388374',
+          totalInvoiceNum: '245',
+          uncheckedInvoice: '200',
+          checkedoutInvoice: '45'
+        },
+        {
+          id: '2',
+          companyName: '有方教育',
+          totalAmountInFiguers: '388374',
+          totalInvoiceNum: '245',
+          uncheckedInvoice: '200',
+          checkedoutInvoice: '45'
+        },
+        {
+          id: '2',
+          companyName: '有方教育',
+          totalAmountInFiguers: '388374',
+          totalInvoiceNum: '245',
+          uncheckedInvoice: '200',
+          checkedoutInvoice: '45'
+        },
+        {
+          id: '2',
+          companyName: '有方教育',
+          totalAmountInFiguers: '388374',
+          totalInvoiceNum: '245',
+          uncheckedInvoice: '200',
+          checkedoutInvoice: '45'
+        },
+      ]
+    }
+  }
+</script>

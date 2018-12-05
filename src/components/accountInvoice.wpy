@@ -1,0 +1,284 @@
+<style lang="less">
+  .total-account-container {
+    background-color: rgba(245, 245, 245, 1);
+    min-height: 100vh;
+    height: 100%;
+    font-size: 24rpx;
+    color: #5C5E6D;
+    .total-account-header {
+      height: 76rpx;
+      padding: 0 30rpx;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: #fff;
+
+      text {
+        font-size: 26rpx;
+        color: #666;
+        font-weight: bold;
+      }
+      .filter {
+        display: flex;
+        align-items: center;
+        image {
+          width: 28rpx;
+          height: 28rpx;
+          margin-right: 6rpx;
+        }
+        text {
+          font-size: 24rpx;
+          font-weight: 400;
+        }
+      }
+    }
+    .account-month {
+      padding-bottom: 20rpx;
+      border-bottom: 1px solid rgba(204,204,204,1);
+      &:nth-last-of-type(1) {
+        border: none;
+      }
+      .account-month-header {
+        height: 70rpx;
+        padding: 20rpx 30rpx 0;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        text {
+          font-size: 30rpx;
+          color: #666;
+          font-weight: bold;
+        }
+        .month,
+        .total {
+          display: flex;
+          justify-content: flex-end;
+          align-items: center;
+          view {
+            margin-left: 30rpx;
+          }
+        }
+      }
+      .invoice-container {
+        width: 650rpx;
+        height: 274rpx;
+        padding: 20rpx;
+        margin: 0 30rpx 20rpx;
+        background-color: #fff;
+        border-radius: 4rpx;
+        color: rgba(102, 102, 102, 1);
+        font-weight: 400;
+        position: relative;
+        .invoice-date {
+          font-size: 24rpx;
+        }
+        .company-container {
+          margin-top: 70rpx;
+          padding-left: 24rpx;
+          display: flex;
+          align-items: center;
+          .company-name {
+            color: #666;
+            font-size: 30rpx;
+            font-weight: bold;
+          }
+          .company-identity {
+            font-size: 18rpx;
+            margin-left: 12rpx;
+            width: 34rpx;
+            height: 34rpx;
+            line-height: 34rpx;
+            text-align: center;
+            border-radius: 17rpx;
+            background-color: #666;
+            color: #fff;
+          }
+        }
+        .total-amount {
+          margin-top: 20rpx;
+          padding-left: 24rpx;
+          font-size: 24rpx;
+          text {
+            color: #666;
+            font-weight: bold;
+            font-size: 26rpx;
+          }
+        }
+        .invoice-num {
+          position: absolute;
+          right: 20rpx;
+          bottom: 20rpx;
+          font-size: 24rpx;
+        }
+        image {
+          position: absolute;
+          top: 0;
+          right: 0;
+          width: 100rpx;
+          height: 75rpx;
+        }
+        &.selected {
+          background-color: #55ACEE;
+          color: #fff;
+          .company-name {
+            color: #fff;
+          }
+          .company-identity {
+            color: #666;
+            background-color: #fff;
+          }
+          .total-amount text {
+            color: #fff;
+          }
+        }
+      }
+    }
+    .no-more {
+      font-size: 24rpx;
+      color: #ccc;
+      text-align: center;
+      margin: 20rpx 0 60rpx;
+    }
+  }
+
+</style>
+
+<template>
+  <view class="total-account-container">
+    <view class="total-account-header">
+      <view>
+        总税额合计：<text>293938.23</text>元
+      </view>
+      <view>
+        发票总数：<text>293</text>张
+      </view>
+      <view class="filter" @tap="handleShowFilterPopup">
+        <image src="{{ filterImg }}"/>
+        <text>筛选</text>
+      </view>
+    </view>
+
+    <view class="total-invoice-detail">
+      <view class="account-month">
+        <view class="account-month-header">
+          <view class="month">2018年<text>12月</text></view>
+          <view class="total">
+            <view>税额合计: <text>1345</text></view>元
+            <view>发票总数: <text>13</text></view>张
+          </view>
+        </view>
+
+        <view wx:for="{{ totalInvoiceData }}" wx:key="index" class="invoice-container {{ item.selected ? 'selected' : '' }}" @tap="hangleChooseInvoice({{ index }})">
+          <view class="invoice-date">开票日期: {{ item.invoiceDate }}</view>
+          <view class="company-container">
+            <view class="company-name">{{ item.identity === PURCHASER ? item.sellerName : item.purchaserName }}</view>
+            <view class="company-identity">{{ item.identity === PURCHASER ? '售' : '购'}}</view>
+          </view>
+          <view class="total-amount">价税合计：<text>{{ item.amountInFiguers }}</text></view>
+          <view class="invoice-num">No：{{ item.invoiceNum }}</view>
+          <image wx:if="{{ item.status === 'unchecked' }}" src="{{ uncheckedImg }}"></image>
+          <image wx:elif="{{ item.status === 'checkedout' }}" src="{{ checkedoutImg }}"></image>
+        </view>
+      </view>
+
+      <view class="account-month">
+        <view class="account-month-header">
+          <view class="month">2018年<text>11月</text></view>
+          <view class="total">
+            <view>税额合计: <text>1345</text></view>元
+            <view>发票总数: <text>13</text></view>张
+          </view>
+        </view>
+
+        <view wx:for="{{ totalInvoiceData }}" wx:key="index" class="invoice-container">
+          <view class="invoice-date">开票日期: {{ item.invoiceDate }}</view>
+          <view class="company-container">
+            <view class="company-name">{{ item.identity === PURCHASER ? item.sellerName : item.purchaserName }}</view>
+            <view class="company-identity">{{ item.identity === PURCHASER ? '售' : '购'}}</view>
+          </view>
+          <view class="total-amount">价税合计：<text>{{ item.amountInFiguers }}</text></view>
+          <view class="invoice-num">No：{{ item.invoiceNum }}</view>
+          <image wx:if="{{ item.status === 'unchecked' }}" src="{{ uncheckedImg }}"></image>
+          <image wx:elif="{{ item.status === 'checkedout' }}" src="{{ checkedoutImg }}"></image>
+        </view>
+      </view>
+    </view>
+
+    <view class="no-more">没有更多内容了~</view>
+
+    <!-- 筛选弹出层 -->
+  </view>
+</template>
+
+<script>
+  import wepy from 'wepy'
+  import { PURCHASER, SELLER } from '../constant/constant'
+  // import popup from './van/popup'
+  import { connect } from 'wepy-redux'
+
+  @connect({
+    account(state) {
+      return state.account
+    },
+  })
+
+  export default class Account extends wepy.component {
+    props = {
+      active: Number,
+    }
+
+    computed = {
+      totalInvoiceData() {
+        let currentInvoiceData = []
+        switch (this.active) {
+          case 0:
+            currentInvoiceData = wepy.$store.getState().account
+            break
+          case 1:
+            currentInvoiceData = wepy.$store.getState().account.filter((item) => {
+              return item.status === 'unchecked'
+            })
+            break
+          case 2:
+            currentInvoiceData = wepy.$store.getState().account.filter((item) => {
+              return item.status === 'checkedout'
+            })
+            break
+        }
+        return currentInvoiceData
+      },
+    }
+
+    components = {
+    }
+
+    data = {
+      PURCHASER,
+      SELLER,
+      filterImg: '../../assets/images/filter.png',
+      uncheckedImg: '../../assets/images/unchecked.png',
+      checkedoutImg: '../../assets/images/checkedout.png',
+
+      company: {
+        id: '2',
+      },
+
+      selectedInvoice: []
+
+    }
+
+    methods = {
+      handleShowFilterPopup () {
+        this.$emit('showFilterPopup')
+      },
+      hangleChooseInvoice(index) {
+        if (this.active === 0) return
+        this.totalInvoiceData[index].selected = !this.totalInvoiceData[index].selected
+      }
+    }
+
+    async onLoad () {
+    }
+
+  }
+</script>

@@ -1,0 +1,210 @@
+<style lang="less">
+.container {
+    background-color: rgba(245, 245, 245, 1);
+    min-height: 100vh;
+    justify-content: flex-start;
+    .userinfo {
+      margin: 40rpx 0;
+      padding: 20rpx 30rpx;
+      width: 690rpx;
+      height: 130rpx;
+      background-color: #fff;
+      display: flex;
+      justify-content: flex-start;
+      .userinfo-avatar {
+        width: 130rpx;
+        height: 130rpx;
+        margin-right: 30rpx;
+      }
+      .user-detail {
+        .userinfo-nickname {
+          font-size: 32rpx;
+          color: #666;
+          margin-top: 16rpx;
+        }
+        .telphone-num {
+          display: flex;
+          align-items: center;
+          font-size: 26rpx;
+          color: #999;
+          margin-top: 16rpx;
+          .edit-icon {
+            margin-left: 16rpx;
+            height: 32rpx;
+          }
+        }
+      }
+    }
+    // 公司信息
+    .company-container {
+        width: 100%;
+        .selected-icon {
+          margin: -10rpx 0 -10rpx -30rpx;
+          padding: 14rpx 24rpx 10rpx 30rpx;
+          color: #999;
+        }
+        .active-selected-icon {
+          color: #55ACEE;
+        }
+    }
+    .add-company {
+      width: 100%;
+      height: 88rpx;
+      background-color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #55ACEE;
+      font-size: 28rpx;
+      van-icon {
+        margin-right: 10rpx;
+        height: 34rpx;
+      }
+    }
+}
+
+</style>
+
+<template>
+<view class="container">
+
+  <view class="userinfo">
+    <image class="userinfo-avatar" src="{{ userInfo.avatarUrl }}" background-size="cover" />
+    <view class="user-detail">
+      <view class="userinfo-nickname">{{ userInfo.nickName }}</view>
+      <view class="telphone-num">手机号：{{ userInfo.phone }}<van-icon name="edit" class="edit-icon"/></view>
+    </view>
+  </view>
+
+  <view class="company-container" >
+      <van-cell-group>
+        <van-cell  title="{{ item.name }}" is-link wx:for="{{ company }}" wx:key="index" @tap="handleEditCompany({{ item }}, {{ index }})">
+          <van-icon slot="icon" name="{{ item.id === defaultCompany.id ? 'checked' : 'passed '}}" class="selected-icon {{ item.id === defaultCompany.id ? 'active-selected-icon' : '' }}" catchtap="toggleDefaultCompany({{ item }})"></van-icon>
+        </van-cell>
+      </van-cell-group>
+  </view>
+
+  <view @tap="handleAddCompany" class="add-company"><van-icon name="add-o"/>绑定新公司</view>
+
+</view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import { connect } from 'wepy-redux'
+import { URL } from '../../constant/constant'
+
+@connect({
+  company(state) {
+    return state.company.company
+  },
+  defaultCompany(state) {
+    return state.company.defaultCompany
+  },
+  userInfo(state) {
+    return state.userInfo
+  }
+})
+
+export default class Home extends wepy.page {
+  config = {
+    navigationBarTitleText: '基本信息',
+    usingComponents: {
+      "van-button": "/components/van/button/index",
+      "van-cell": "/components/van/cell/index",
+      "van-cell-group": "/components/van/cell-group/index",
+      "van-popup": "/components/van/popup/index",
+      "van-icon": "/components/van/icon/index",
+      "van-radio": "/components/van/radio/index",
+      "van-radio-group": "/components/van/radio-group/index",
+    },
+  }
+
+  data = {
+  }
+
+  methods = {
+    // 编辑公司信息
+    async handleEditCompany(company, index) {
+      wx.navigateTo({
+        url: '../company/company?type=update&index=' + index + '&company=' + JSON.stringify(company)
+      })
+
+      this.show = false
+    },
+    // 增加公司
+    handleAddCompany() {
+      wx.navigateTo({
+        url: '../company/company?type=add&index=-1&company='
+      })
+    },
+    toggleDefaultCompany (item) {
+      const _self = this
+      wx.showModal({
+        title: '选择默认公司',
+        content: '您选择的默认公司是' + item.name,
+        success(res) {
+          if (res.confirm) {
+            wepy.$store.dispatch({
+              type: 'UPDATEDEFAULTCOMPANY',
+              payload: item
+            })
+            wx.setStorage({
+              key: 'defaultCompany',
+              data: item
+            })
+          }
+        }
+      })
+    }
+  }
+
+  async onLoad() {
+    wx.getStorage({
+      key: 'defaultCompany',
+      success(res) {
+        wepy.$store.dispatch({
+          type: 'UPDATEDEFAULTCOMPANY',
+          payload: res.data
+        })
+      },
+      fail(err) {
+        console.log('err', err);
+      }
+    })
+    // if (wepy.$store.getState().userInfo.no) return
+    wx.showToast({
+      title: '获取信息...',
+      icon: 'loading'
+    })
+
+    this.getTotalUserInfo(wepy.$store.getState().userInfo)
+  }
+
+  // 根据用户基本信息获取唯一id和公司信息
+  async getTotalUserInfo(userInfo) {
+    const { code } = await wepy.login()
+    if (!code) return
+    // const { data: { openid } } = await wepy.request('https://api.weixin.qq.com/sns/jscode2session?appid=' + APPID + '&secret=' + SECRET + '&js_code=' + code + '&grant_type=authorization_code')
+    const { data: { openid } } = await wepy.request(URL.getOpenId + '?code=' + code)
+
+    userInfo.openid = openid
+    const { data: { no, company } } = await wepy.request({
+      url: URL.saveUserInfo,
+      data: userInfo,
+      method: 'POST'
+    })
+
+    userInfo.no = no
+    wepy.$store.dispatch({
+      type: 'UPDATEUSERINFO',
+      payload: userInfo
+    })
+
+    wepy.$store.dispatch({
+      type: 'UPDATECOMPANY',
+      payload: company
+    })
+  }
+}
+</script>

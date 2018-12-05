@@ -1,0 +1,218 @@
+<style lang="less">
+  .scan-container {
+    background-color: rgba(245, 245, 245, 1);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    .default-company-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      .van-cell {
+        background-color: rgba(245, 245, 245, 1);
+        border-bottom: 1rpx solid rgba(209,209,209,1);
+        .van-cell__title {
+          color: rgba(102, 102, 102, 1);
+          font-size: 30rpx;
+          font-weight: 400;
+        }
+      }
+    }
+    .get-message {
+      position: relative;
+      margin-bottom: 20rpx;
+      width: 580rpx;
+      height: 236rpx;
+      image {
+        width: 100%;
+        height: 100%;
+      }
+      view {
+        position: absolute;
+        width: 50%;
+        height: 100%;
+        left: 50%;;
+        top: 0;
+        text-align: center;
+        line-height: 236rpx;
+        font-size: 30rpx;
+        color: #fff;
+      }
+    }
+  }
+
+</style>
+
+<template>
+  <view class="scan-container">
+    <view class="default-company-container">
+      <van-cell title="{{ '默认公司：  ' + defaultCompany.name || '您当前尚未选择公司' }}" clickable @tap="handleChooseCompany" is-link/>
+    </view>
+
+    <view class="get-message" @tap="getPhoto('camera')">
+      <image src="{{ cameraImg }}" />
+      <view>
+        拍照
+      </view>
+    </view>
+
+    <view class="get-message" @tap="getPhoto('album')">
+      <image src="{{ albumImg }}" />
+      <view>
+        选择照片
+      </view>
+    </view>
+
+    <view class="get-message" @tap="writeBySelf">
+      <image src="{{ writeImg }}" />
+      <view>
+        自行录入
+      </view>
+    </view>
+  </view>
+</template>
+
+<script>
+import wepy from 'wepy'
+import { URL } from '../../constant/constant'
+import { connect } from 'wepy-redux'
+
+@connect({
+  defaultCompany(state) {
+    return state.company.defaultCompany
+  }
+})
+
+export default class Scan extends wepy.page {
+  config = {
+    navigationBarTitleText: '发票识别',
+    usingComponents: {
+      "van-cell": "/components/van/cell/index",
+      "van-cell-group": "/components/van/cell-group/index",
+    },
+  }
+
+  data = {
+    cameraImg: '../../assets/images/camera.png',
+    albumImg: '../../assets/images/album.png',
+    writeImg: '../../assets/images/write.png',
+  }
+
+  methods = {
+    handleChooseCompany() {
+      wx.switchTab({
+        url: '../home/home'
+      })
+    },
+    // 调用拍照或者选取照片接口 ======发票识别
+    async getPhoto(type) {
+      const _self = this
+      const imageData = await wepy.chooseImage({
+        count: 1,
+        sizeType: 'original',
+        sourceType: [type]
+      })
+
+      wx.showToast({
+        title: '正在识别...',
+        icon: 'loading',
+        mask: true,
+        duration: 60000
+      })
+
+      wx.getFileSystemManager().readFile({
+        filePath: imageData.tempFilePaths[0], //选择图片返回的相对路径
+        encoding: 'base64', //编码格式
+        success(res) {
+          _self.handleGetAccessToken(res.data)
+        }
+      })
+    },
+    // 自行录入
+    writeBySelf() {
+      wx.navigateTo({
+        url: '../invoice/invoice'
+      })
+    }
+  }
+
+  onLoad() {
+
+  }
+
+  // 获取access_token
+  async handleGetAccessToken(base64) {
+    const { data: { access_token } } = await wepy.request({
+      url: URL.getBaiDuAccessToken,
+      method: 'POST'
+    })
+    this.getInvoiceData(access_token, base64)
+  }
+
+  // 根据access_token 调用百度云发票识别接口
+  async getInvoiceData(access_token, base64) {
+    const _self = this
+    const { data: { words_result } } = await wepy.request({
+      url:  URL.invoiceIdentification + access_token,
+      data: {
+        image: base64,
+        detect_direction: true
+      },
+      header: {
+        'content-type': 'application/x-www-form-urlencoded'
+      },
+      method: 'POST'
+    })
+
+    if (words_result) {
+      wx.hideToast()
+
+      // const { statusCode } = await wepy.request({
+      //   url: URL.checkInvoice,
+      //   method: 'POST',
+      //   data: {
+      //     "no": wepy.$store.getState().userInfo.no,
+      //     "companyId": wepy.$store.getState().company.defaultCompany.id,
+      //     "invoiceNum": words_result.InvoiceNum
+      //   }
+      // })
+      //
+      // if (statusCode === 403) {
+      //   return wx.showModal({
+      //     title: '该发票已经被识别过!',
+      //     content: `绑定的公司为：${wepy.$store.getState().company.defaultCompany.name}`,
+      //     confirmColor: '#55ACEE',
+      //     confirmText: '知道了',
+      //     showCancel: false,
+      //     success(res) {
+      //     }
+      //   })
+      // } else if (statusCode === 200) {
+        wx.navigateTo({
+          url: '../invoice/invoice?message=' + JSON.stringify(words_result)
+        })
+      // }
+    } else {
+      wx.hideToast()
+      wx.showModal({
+        title: '识别失败',
+        content: '未能识别出发票信息',
+        confirmText: '自行录入',
+        cancelText: '重选照片',
+        success(res) {
+          if (res.confirm) {
+            this.show = false
+            wx.navigateTo({
+              url: '../invoice/invoice'
+            })
+          }
+        }
+      })
+    }
+  }
+}
+
+</script>

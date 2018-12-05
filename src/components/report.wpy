@@ -1,0 +1,42 @@
+<style lang="less">
+  .report-container {
+    display: flex;
+    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    height: 72vh;
+    font-size: 30rpx;
+    color: #666;
+    image {
+      width: 150rpx;
+      height: 150rpx;
+      margin-bottom: 48rpx;
+    }
+  }
+</style>
+
+<template>
+  <view class="report-container">
+    <image src="{{ buildingImg }}"/>
+    <text>正在建设中...</text>
+  </view>
+</template>
+
+<script>
+	import wepy from 'wepy'
+
+	export default class Report extends wepy.component {
+    props = {
+    }
+
+    data = {
+      buildingImg: '../../assets/images/building.png'
+    }
+
+    methods = {
+    }
+
+		onLoad() {
+		}
+	}
+</script>

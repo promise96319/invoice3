@@ -1,0 +1,84 @@
+<style lang="less">
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+</style>
+
+<script>
+import wepy from 'wepy'
+import 'wepy-async-function'
+
+import { setStore } from 'wepy-redux'
+import configStore from './store'
+
+const store = configStore()
+setStore(store)
+
+wepy.$store = store
+
+export default class extends wepy.app {
+  config = {
+    pages: [
+      'pages/accountDetail/accountDetail', //账务信息
+      'pages/account/account', //账务信息首页
+      'pages/home/home', //个人信息
+      'pages/company/company', //公司信息
+      'pages/login/login', //授权登录
+      'pages/invoice/invoice', //发票是识别后的信息展示
+      'pages/scan/scan', //识别发票
+
+      'pages/addtionalMessage/addtionalMessage', //用户补充发票信息
+      'pages/sale/sale', //为销售者时的凭证
+      'pages/notax/notax', //不用税收时的凭证
+      'pages/purchase/purchase', //为购买者时的凭证
+    ],
+    window: {
+      backgroundTextStyle: 'light',
+      navigationBarBackgroundColor: '#fff',
+      navigationBarTitleText: 'WeChat',
+      navigationBarTextStyle: 'black',
+    },
+    tabBar: {
+      color: '#999999',
+      selectedColor: '#55ACFF',
+      backgroundColor: '#ffffff',
+      borderStyle: 'black',
+      list: [
+          {
+              pagePath: 'pages/account/account',
+              text:'结账',
+              iconPath: 'assets/images/account.png',
+              selectedIconPath: 'assets/images/account-active.png'
+          },
+          {
+              pagePath: 'pages/scan/scan',
+              text: '识别',
+              iconPath: 'assets/images/scan.png',
+              selectedIconPath: 'assets/images/scan-active.png'
+          }, {
+              pagePath: 'pages/home/home',
+              text: '我的',
+              iconPath: 'assets/images/me.png',
+              selectedIconPath: 'assets/images/me-active.png'
+          }]
+      }
+  }
+
+  globalData = {
+  }
+
+  constructor () {
+    super()
+    this.use('requestfix')
+    this.use('promisify')
+  }
+
+  async onLaunch() {
+  }
+}
+</script>
