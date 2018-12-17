@@ -27,6 +27,7 @@
 
 <script>
   import wepy from 'wepy'
+  import { URL } from '../../constant/constant'
 
   export default class Login extends wepy.page {
     config = {
@@ -39,26 +40,73 @@
 
     methods = {
       bindGetUserInfo(e) {
-        this.saveUserInfo(e.detail.userInfo)
+        if (e.detail.userInfo) {
+          this.getTotalUserInfo(e.detail.userInfo)
+        }
       }
     }
 
     async onLoad () {
-      const res = await wepy.getSetting()
-      const { userInfo } = await wepy.getUserInfo()
-      // TODO: 手机号码的获取
-      userInfo.phone = '1359383893'
-      this.saveUserInfo(userInfo)
+      try {
+        wx.getStorage({
+          key: 'defaultCompany',
+          success(res) {
+            wepy.$store.dispatch({
+              type: 'UPDATEDEFAULTCOMPANY',
+              payload: res.data
+            })
+          }
+        })
+
+        const res = await wepy.getSetting()
+        if (res.authSetting['scope.userInfo']) {
+          const { userInfo } = await wepy.getUserInfo()
+          // TODO: 手机号码的获取
+          userInfo.phone = '1359383893'
+          this.getTotalUserInfo(userInfo)
+        }
+      } catch (e) {
+        console.log(e)
+      }
     }
 
-    saveUserInfo (userInfo) {
+    // 根据用户基本信息获取唯一id和公司信息
+    async getTotalUserInfo(userInfo) {
+      wx.showToast({
+        title: '获取信息...',
+        icon: 'loading',
+        duration: 60000,
+      })
+
+      const { code } = await wepy.login()
+      if (!code) return
+
+      const { data: { openid } } = await wepy.request(URL.getOpenId + '?code=' + code)
+
+      userInfo.openid = openid
+      const { data: { no, company } } = await wepy.request({
+        url: URL.saveUserInfo,
+        data: userInfo,
+        method: 'POST'
+      })
+
+      console.log(no, company);
+
+      userInfo.no = no
       wepy.$store.dispatch({
         type: 'UPDATEUSERINFO',
         payload: userInfo
       })
 
+      wepy.$store.dispatch({
+        type: 'UPDATECOMPANY',
+        payload: company
+      })
+
+      wx.hideToast()
+
       wx.switchTab({
-        url: '../home/home'
+        url: '../scan/scan'
       })
     }
   }

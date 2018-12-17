@@ -50,11 +50,12 @@
           color: #fff;
         }
       }
-      .date-picker {
+      .picker {
         padding: 0 30rpx;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        height: 60rpx;
         button {
           padding: 0;
           height: 60rpx;
@@ -69,6 +70,99 @@
           height: 1rpx;
           background: rgba(34,34,34,1);
         }
+        .period button {
+          width: 540rpx;
+        }
+      }
+      .filter-cate {
+        padding: 60rpx 30rpx 0;
+        .title {
+          font-size: 30rxp;
+          color: #666;
+          margin-bottom: 10rpx;
+        }
+        .van-cell {
+          background-color: rgba(245, 245, 245, 1);
+          height: 60rpx;
+          padding: 0 30rpx;
+          input {
+            height: 60rpx;
+            line-height: 60rpx;
+            font-size: 24rpx;
+            color: #999;
+          }
+        }
+        .identity {
+          display: flex;
+          justify-content: space-between;
+          button {
+            width: 155rpx;
+            height: 60rpx;
+            line-height: 60rpx;
+            font-size: 24rpx;
+            padding: 0;
+            background-color: rgba(245, 245, 245, 1);
+          }
+          .active button {
+            background-color: #55ACEE;
+            color: #fff;
+          }
+        }
+        .picker {
+          padding: 0;
+        }
+        .price {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          .van-cell {
+            padding: 0 30rpx;
+            height: 60rpx;
+            line-height: 60rpx;
+            width: 230rpx;
+            background-color: rgba(245, 245, 245, 1);
+            font-size: 24rpx;
+            color:rgba(153,153,153,1);
+            input {
+              text-align: center;
+            }
+          }
+          .gap {
+            width: 27rpx;
+            height: 1rpx;
+            background: rgba(34,34,34,1);
+          }
+        }
+      }
+    }
+    .footer {
+      margin-top: 60rpx;
+      display: flex;
+      height: 100rpx;
+      width: 100%;
+      button {
+        padding: 0;
+        margin: 0;
+        font-size: 30rpx;
+        border: none;
+        text-align: center;
+        width: 100%;
+        height: 100%;
+        line-height: 100rpx;
+      }
+      .reset {
+        flex: 2;
+        button {
+          color: #666;
+          background-color: rgba(245, 245, 245, 1);
+        }
+      }
+      .confirm {
+        flex: 3;
+        button {
+          color: #fff;
+          background-color: #55ACEE;
+        }
       }
     }
   }
@@ -77,23 +171,27 @@
 
 <template>
   <view class="account-container">
+    <!-- 时间格式化 -->
+    <wxs src='../../filters/formatDate.wxs' module='formatDate' />
+
     <view class="account-header">
       <view wx:for="{{ tabs }}" wx:key="index" class="{{ active === index ? 'active' : ''}}" @tap="toggleTab({{ index }})">{{ item }}</view>
     </view>
 
     <block wx:if="{{ active === 0 }}">
-      <account :active.sync="active" @showFilterPopup.user="showFilterPopup"></account>
+      <account :filterCate.sync="childFilterCate" :active.sync="active" @showFilterPopup.user="showFilterPopup"></account>
     </block>
     <block wx:if="{{ active === 1 }}">
-      <account :active.sync="active" @showFilterPopup.user="showFilterPopup"></account>
+      <account :filterCate.sync="childFilterCate" :active.sync="active" @showFilterPopup.user="showFilterPopup"></account>
     </block>
     <block wx:if="{{ active === 2 }}">
-      <account :active.sync="active" @showFilterPopup.user="showFilterPopup"></account>
+      <account :filterCate.sync="childFilterCate" :active.sync="active" @showFilterPopup.user="showFilterPopup"></account>
     </block>
     <block wx:if="{{ active === 3 }}">
       <report></report>
     </block>
 
+    <!-- 筛选弹出层 -->
     <van-popup
      show="{{ isFilterPopupShow }}"
      bind:close="handleHideFilterPopup"
@@ -106,17 +204,115 @@
       <view class="filter-header">
         筛选
       </view>
+
       <view class="uploaded-date">
-        <van-button class="active">上传日期</van-button>
-        <van-button>当前税额所属期</van-button>
+        <van-button class="{{ filterCate.isAccountPeriod ? '' : 'active' }}" @tap="handleChooseSortWay({{ false }})">上传日期</van-button>
+        <van-button class="{{ filterCate.isAccountPeriod ? 'active' : '' }}" @tap="handleChooseSortWay({{ true }})">当前税额所属期</van-button>
       </view>
-      <view class="date-picker">
-        <van-button>2019年03月04日</van-button>
-        <view class="gap"></view>
-        <van-button>2019年03月04日</van-button>
+
+      <view class="picker">
+        <block wx:if="{{ !filterCate.isAccountPeriod }}">
+          <van-button @tap="handleShowDatePicker('minUploadedDate')">{{ formatDate.getFullDate(filterCate.minUploadedDate) }}</van-button>
+          <view class="gap"></view>
+          <van-button @tap="handleShowDatePicker('maxUploadedDate')">{{ formatDate.getFullDate(filterCate.maxUploadedDate) }}</van-button>
+        </block>
+        <block wx:else>
+          <van-button class="period" @tap="handleShowAccountPeriod">当前税额所属期为：{{ formatDate.getFullMonth(filterCate.accountPeriod) }}</van-button>
+        </block>
       </view>
+
+      <view class="filter-cate">
+        <view class="title">公司名称</view>
+        <van-field
+          value="{{ filterCate.companyKeyword }}"
+          placeholder="请输入搜索公司的名称"
+          border="{{ true }}"
+          clearable
+          @change="handleFilterCate('companyKeyword')"
+        />
+      </view>
+
+      <view class="filter-cate">
+        <view class="title">您的公司身份</view>
+        <view class="identity">
+          <van-button class="{{ !filterCate.identity ? 'active' : '' }}" @tap="handleChooseIdentity()">不限</van-button>
+          <van-button class="{{ filterCate.identity === PURCHASER ? 'active' : '' }}" @tap="handleChooseIdentity({{ PURCHASER }})">购买方</van-button>
+          <van-button class="{{ filterCate.identity === SELLER ? 'active' : '' }}" @tap="handleChooseIdentity({{ SELLER }})">销售方</van-button>
+        </view>
+      </view>
+
+      <view class="filter-cate">
+        <view class="title">发票号</view>
+        <van-field
+          value="{{ filterCate.invoiceNum }}"
+          placeholder="请输入发票号"
+          border="{{ true }}"
+          type="number"
+          clearable
+          @change="handleFilterCate('invoiceNum')"
+        />
+      </view>
+
+      <view class="filter-cate">
+        <view class="title">开票日期</view>
+        <view class="picker">
+          <van-button @tap="handleShowDatePicker('minBillingDate')">{{ formatDate.getFullDate(filterCate.minBillingDate) }}</van-button>
+          <view class="gap"></view>
+          <van-button @tap="handleShowDatePicker('maxBillingDate')">{{ formatDate.getFullDate(filterCate.maxBillingDate) }}</van-button>
+        </view>
+      </view>
+
+      <view class="filter-cate">
+        <view class="title">价税区间</view>
+        <view class="price">
+          <van-field
+            value="{{ filterCate.minPrice }}"
+            type="number"
+            placeholder="最低价税"
+            @change="handleFilterCate('minPrice')"
+          />
+          <view class="gap"></view>
+          <van-field
+            value="{{ filterCate.maxPrice }}"
+            type="number"
+            placeholder="最高价税"
+            @change="handleFilterCate('maxPrice')"
+          />
+        </view>
+      </view>
+
+      <view class="footer">
+        <van-button class="reset" @tap="resetFilterCate()">重置</van-button>
+        <van-button class="confirm" @tap="confirmFiterCate()">确定</van-button>
+      </view>
+
     </van-popup>
 
+    <van-popup
+      show="{{ isDatePickerShow }}"
+      bind:close="handleHideDatePicker"
+      position="bottom"
+      close-on-click-overlay
+    >
+      <van-datetime-picker
+        type="date"
+        bind:cancel="handleHideDatePicker"
+        bind:confirm="handleConfirmDate"
+      />
+    </van-popup>
+
+    <van-popup
+      show="{{ isAccountPeriodShow }}"
+      bind:close="handleHideAccountPeriod"
+      position="bottom"
+      close-on-click-overlay
+    >
+      <van-datetime-picker
+        type="year-month"
+        bind:cancel="handleHideAccountPeriod"
+        bind:confirm="handleConfirmPeriod"
+      />
+    </van-popup>
   </view>
 </template>
 
@@ -132,6 +328,8 @@
       "usingComponents": {
         "van-popup": "/components/van/popup/index",
         "van-button": "/components/van/button/index",
+        "van-field": "/components/van/field/index",
+        "van-datetime-picker": "/components/van/datetime-picker/index",
       }
     }
 
@@ -140,21 +338,48 @@
       report
     }
 
-    computed = {
-    }
-
     data = {
       company: {},
 
       tabs: ['账务总览', '未结账', '已结账', '报表查询'],
-      active: 1,
+      active: 0,
 
-      isFilterPopupShow: true,
+      isFilterPopupShow: false,
+      filterCate: {},
+      childFilterCate: {},
+
+      isDatePickerShow: false,
+      currentDateType: '',
+
+      isAccountPeriodShow: false,
+
+      PURCHASER,
+      SELLER,
+
+      testData: [
+        {amountInFiguers: 20},
+        {amountInFiguers: 20},
+      ]
+    }
+
+    computed = {
     }
 
     methods = {
       toggleTab(index) {
-        this.active = index
+      this.active = index
+        switch (this.active) {
+          case 0:
+            this.filterCate = wepy.$store.getState().accountfilter.totalAccount
+            break
+          case 1:
+            this.filterCate = wepy.$store.getState().accountfilter.uncheckedAccount
+            break
+          case 2:
+            this.filterCate = wepy.$store.getState().accountfilter.checkedoutAccount
+            break
+        }
+        this.childFilterCate = {...this.filterCate}
       },
       showFilterPopup() {
         this.isFilterPopupShow = true
@@ -162,6 +387,52 @@
       handleHideFilterPopup () {
         this.isFilterPopupShow = false
       },
+
+      // 筛选功能
+      handleChooseSortWay (isAccountPeriod) {
+        this.filterCate.isAccountPeriod = isAccountPeriod
+      },
+      handleChooseIdentity (identity) {
+        this.filterCate.identity = identity
+      },
+      handleFilterCate (type, e) {
+        this.filterCate[type] = e.detail
+      },
+      handleShowDatePicker(type) {
+        this.currentDateType = type
+        this.isDatePickerShow = true
+      },
+      handleConfirmDate(e) {
+        this.filterCate[this.currentDateType] = e.detail
+        this.isDatePickerShow = false
+      },
+      handleHideDatePicker() {
+        this.isDatePickerShow = false
+      },
+      handleShowAccountPeriod() {
+        this.isAccountPeriodShow = true
+      },
+      handleHideAccountPeriod () {
+        this.isAccountPeriodShow = false
+      },
+      handleConfirmPeriod(e) {
+        this.filterCate.accountPeriod = e.detail
+        this.isAccountPeriodShow = false
+      },
+      resetFilterCate() {
+        this.filterCate = {}
+      },
+      confirmFiterCate() {
+        wepy.$store.dispatch({
+          type: 'UPDATEFILTERCATE',
+          payload: {
+            active: this.active,
+            filterCate: this.filterCate
+          }
+        })
+        this.childFilterCate = {...this.filterCate}
+        this.isFilterPopupShow = false
+      }
     }
 
     async onLoad (options) {
@@ -174,8 +445,6 @@
       await wepy.setNavigationBarTitle({
         title: this.company.name
       })
-
     }
-
   }
 </script>

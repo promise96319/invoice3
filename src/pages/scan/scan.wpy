@@ -49,7 +49,7 @@
 <template>
   <view class="scan-container">
     <view class="default-company-container">
-      <van-cell title="{{ '默认公司：  ' + defaultCompany.name || '您当前尚未选择公司' }}" clickable @tap="handleChooseCompany" is-link/>
+      <van-cell title="{{ '默认公司： ' + (defaultCompany.name || '您当前尚未选择公司') }}" clickable @tap="handleChooseCompany" is-link/>
     </view>
 
     <view class="get-message" @tap="getPhoto('camera')">
@@ -72,6 +72,8 @@
         自行录入
       </view>
     </view>
+
+
   </view>
 </template>
 
@@ -92,6 +94,7 @@ export default class Scan extends wepy.page {
     usingComponents: {
       "van-cell": "/components/van/cell/index",
       "van-cell-group": "/components/van/cell-group/index",
+      "van-popup": "/components/van/popup/index",
     },
   }
 
@@ -109,12 +112,30 @@ export default class Scan extends wepy.page {
     },
     // 调用拍照或者选取照片接口 ======发票识别
     async getPhoto(type) {
+      if (!wepy.$store.getState().company.defaultCompany.id) {
+        wx.showToast({
+          title: '请先设置默认公司',
+          icon: 'none',
+          mask: true
+        })
+        setTimeout(() => {
+          wx.switchTab({
+            url: '../home/home'
+          })
+        }, 1500)
+
+        return
+      }
+
       const _self = this
       const imageData = await wepy.chooseImage({
         count: 1,
         sizeType: 'original',
         sourceType: [type]
       })
+
+      // 防止在识别的过程中用户去其他页面浏览
+      wx.hideTabBar({animation: true})
 
       wx.showToast({
         title: '正在识别...',
@@ -133,6 +154,20 @@ export default class Scan extends wepy.page {
     },
     // 自行录入
     writeBySelf() {
+      if (!wepy.$store.getState().company.defaultCompany.id) {
+        wx.showToast({
+          title: '请先设置默认公司',
+          icon: 'none',
+          mask: true
+        })
+        setTimeout(() => {
+          wx.switchTab({
+            url: '../home/home'
+          })
+        }, 1500)
+
+        return
+      }
       wx.navigateTo({
         url: '../invoice/invoice'
       })
@@ -140,7 +175,15 @@ export default class Scan extends wepy.page {
   }
 
   onLoad() {
-
+    wx.getStorage({
+      key: 'defaultCompany',
+      success(res) {
+        wepy.$store.dispatch({
+          type: 'UPDATEDEFAULTCOMPANY',
+          payload: res.data
+        })
+      }
+    })
   }
 
   // 获取access_token
@@ -167,40 +210,44 @@ export default class Scan extends wepy.page {
       method: 'POST'
     })
 
-    if (words_result) {
-      wx.hideToast()
 
-      // const { statusCode } = await wepy.request({
-      //   url: URL.checkInvoice,
-      //   method: 'POST',
-      //   data: {
-      //     "no": wepy.$store.getState().userInfo.no,
-      //     "companyId": wepy.$store.getState().company.defaultCompany.id,
-      //     "invoiceNum": words_result.InvoiceNum
-      //   }
-      // })
-      //
-      // if (statusCode === 403) {
-      //   return wx.showModal({
-      //     title: '该发票已经被识别过!',
-      //     content: `绑定的公司为：${wepy.$store.getState().company.defaultCompany.name}`,
-      //     confirmColor: '#55ACEE',
-      //     confirmText: '知道了',
-      //     showCancel: false,
-      //     success(res) {
-      //     }
-      //   })
-      // } else if (statusCode === 200) {
+    if (words_result) {
+
+      const { statusCode } = await wepy.request({
+        url: URL.checkInvoice,
+        method: 'POST',
+        data: {
+          "no": wepy.$store.getState().userInfo.no,
+          "companyId": wepy.$store.getState().company.defaultCompany.id,
+          "invoiceNum": words_result.InvoiceNum
+        }
+      })
+
+      wx.showTabBar({animation: true})
+      wx.hideToast()
+      if (statusCode === 403) {
+        return wx.showModal({
+          title: '该发票已经被识别过!',
+          content: `绑定的公司为：${wepy.$store.getState().company.defaultCompany.name}`,
+          confirmColor: '#55ACEE',
+          confirmText: '知道了',
+          showCancel: false,
+          success(res) {
+          }
+        })
+      } else if (statusCode === 200) {
         wx.navigateTo({
           url: '../invoice/invoice?message=' + JSON.stringify(words_result)
         })
-      // }
+      }
     } else {
       wx.hideToast()
+      wx.showTabBar({animation: true})
       wx.showModal({
         title: '识别失败',
         content: '未能识别出发票信息',
         confirmText: '自行录入',
+        confirmColor: '#55ACEE',
         cancelText: '重选照片',
         success(res) {
           if (res.confirm) {

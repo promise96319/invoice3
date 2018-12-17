@@ -71,15 +71,21 @@ image {
     <button plain @tap="hanldeSavePic" class="save-pic">保存</button>
     <button plain @tap="handleCancel">回到主页</button>
   </view>
+
+  <van-dialog id="van-dialog"/>
 </view>
 </template>
 
 <script>
 import wepy from 'wepy'
+import Dialog from '../../components/van/dialog/dialog'
 
 export default class Sale extends wepy.page {
   config = {
-    navigationBarTitleText: '凭证'
+    navigationBarTitleText: '凭证',
+    usingComponents: {
+      "van-dialog": "/components/van/dialog/index",
+    },
   }
 
   data = {
@@ -92,6 +98,24 @@ export default class Sale extends wepy.page {
 
   methods = {
     async hanldeSavePic () {
+      const { authSetting } = await wepy.getSetting()
+      let isAgree = authSetting['scope.writePhotosAlbum']
+
+      if (isAgree === false) {
+        Dialog.confirm({
+          title: '温馨提示',
+          message: '请授权允许保存图片到相册',
+          confirmButtonOpenType: 'openSetting',
+          confirmButtonText: '授权'
+        }).then((res) => {
+          isAgree = true
+        }).catch((err) => {
+          isAgree = false
+        })
+      }
+
+      if (isAgree === false) return
+
       const { path } = await wepy.getImageInfo({src: this.tempFilePath})
       const { errMsg } = await wepy.saveImageToPhotosAlbum({filePath: path})
       if (errMsg === 'saveImageToPhotosAlbum:ok') {
@@ -99,15 +123,15 @@ export default class Sale extends wepy.page {
           title: '保存成功',
         })
         setTimeout(() => {
-          wx.redirectTo({
-            url: '../home/home'
+          wx.switchTab({
+            url: '../scan/scan'
           })
         }, 1500)
       }
     },
     handleCancel () {
-      wx.redirectTo({
-        url: '../home/home'
+      wx.switchTab({
+        url: '../scan/scan'
       })
     }
   }
@@ -116,7 +140,8 @@ export default class Sale extends wepy.page {
      wx.showToast({
        title: '正在生成凭证',
        icon: 'loading',
-       duration: 10000
+       duration: 10000,
+       mask: true
      })
     this.result = JSON.parse(options.result)
     // this.result = {
@@ -206,7 +231,7 @@ export default class Sale extends wepy.page {
     this.width = windowWidth
     this.$apply()
 
-// 函数定义区域 =====================================
+    // 函数定义区域 =====================================
     // 设置一个基准比例
     let cal = (px) => {
       return  px / 750 * this.width
@@ -231,7 +256,7 @@ export default class Sale extends wepy.page {
       }
     }
 
-// canvas绘制区域 =======================================
+    // canvas绘制区域 =======================================
     const ctx = wx.createCanvasContext('canvasId')
 
     ctx.setFillStyle('white')
@@ -382,24 +407,26 @@ export default class Sale extends wepy.page {
 
     ctx.draw(true, () => {
       this.imageHeight = cal(120) + (7 + this.result.subjects.length) * cal(36)
-      wx.canvasToTempFilePath({
-          x: 0,
-          y: 0,
-          width: cal(750),
-          height: cal(120) + (7 + this.result.subjects.length) * cal(36),
-          fileType: 'jpg',
-          quality: 0.5,
-          canvasId: 'canvasId',//canvasId和标签里面的id对应
-          success: (res) => {
-              //将获取到的图片临时路径set到canvasSaveimg中
-              this.tempFilePath = res.tempFilePath
-              this.$apply()
-              wx.hideToast()
-          },
-          fail: (err) => {
-            console.log(err);
-          }
-      })
+      setTimeout(() => {
+        wx.canvasToTempFilePath({
+            x: 0,
+            y: 0,
+            width: cal(750),
+            height: cal(120) + (7 + this.result.subjects.length) * cal(36),
+            fileType: 'jpg',
+            quality: 0.5,
+            canvasId: 'canvasId',//canvasId和标签里面的id对应
+            success: (res) => {
+                //将获取到的图片临时路径set到canvasSaveimg中
+                this.tempFilePath = res.tempFilePath
+                this.$apply()
+                wx.hideToast()
+            },
+            fail: (err) => {
+              console.log(err);
+            }
+        })
+      }, 500)
     })
   }
 }

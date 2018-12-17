@@ -4,11 +4,11 @@ import { UPDATECOMPANY, UPDATEDEFAULTCOMPANY } from '../types/company'
 
 const companyState = {
 	company: [],
-	defaultCompany: {
-		id: 8,
-		name: '有略教育科技有限公司',
-		
-	}
+	defaultCompany: {}
+	// defaultCompany: {
+		// id: 8,
+		// name: '有略教育科技有限公司',
+	// }
 }
 
 export default handleActions({

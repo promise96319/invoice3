@@ -109,6 +109,10 @@
   padding-right: 10rpx;
 }
 
+.footer-delete {
+  margin-top: 40rpx;
+}
+
 </style>
 
 <template>
@@ -262,10 +266,24 @@
       价税合计：{{ calTotalMoney }}
     </view>
 
-    <button @tap="handleMakeCertificate" class="make-certificate">
+    <view wx:if="{{ currentType === 'account' }}">
+      <block wx:if="{{ message.identity === SELLER }}">
+        <button @tap="handleSaveAccountInvoice" class="make-certificate">
+          保存
+        </button>
+        <button @tap="handleDeleteAccountInvoice" class="footer-delete">
+          删除
+        </button>
+      </block>
+      <block wx:else>
+        <button @tap="handleMakeCertificate" class="make-certificate">
+          下一步
+        </button>
+      </block>
+    </view>
+    <button wx:else @tap="handleMakeCertificate" class="make-certificate">
       {{ message.identity === SELLER ? '点击生成凭证' : '下一步' }}
     </button>
-
   </view>
 
 
@@ -394,6 +412,8 @@ export default class Message extends wepy.page {
     message: {},
     // 公司信息
     company: {},
+    // 判断是识别发票的过程还是在结账页面修改发票信息
+    currentType: '',
 
     // 当前查询的是购买方名称还是销售方名称
     identityOfSearch: '',
@@ -534,6 +554,7 @@ export default class Message extends wepy.page {
       const _self = this
       wx.showModal({
         title: '是否放弃选择公司？',
+        confirmColor: '#55ACEE',
         success(res) {
           if (res.confirm) {
             _self.showCompanyResult = false
@@ -545,6 +566,7 @@ export default class Message extends wepy.page {
     chooseCompanyName (index) {
       const _self = this
       wx.showModal({
+        confirmColor: '#55ACEE',
         content: `您当前选择的公司是：${_self.searchCompanyResult[index].unitName}`,
         success(res) {
           if (res.confirm) {
@@ -584,6 +606,7 @@ export default class Message extends wepy.page {
     },
     dateChange (e) {
       this.currentDate = this.formatDate(e.detail.data.innerValue)
+      // this.currentDate = e.detail.data.innerValue
     },
     dateConfirm () {
       this.invoiceDateShow = false
@@ -612,6 +635,7 @@ export default class Message extends wepy.page {
 
 
     // 商品信息
+    // 允许输入负数
     handleInputDetail(type, index, e) {
       let res = e.detail
       if (type !== 'commodityName') {
@@ -647,13 +671,15 @@ export default class Message extends wepy.page {
       const _self = this
       wx.showModal({
         content: '是否删除该条支付信息？',
+        confirmColor: '#55ACEE',
         success (res) {
           if (res.confirm) {
             _self.message.serviceDetail.splice(index, 1)
             wx.showToast({
               title: '删除成功',
             })
-             _self.$apply()
+            _self.currentIndex = -1
+            _self.$apply()
           } else if (res.cancel) {
             //
           }
@@ -706,8 +732,8 @@ export default class Message extends wepy.page {
 
       for (let i = 0; i < this.message.serviceDetail.length; i++) {
         if (!this.message.serviceDetail[i].commodityName) return this.showToast('请填写支付信息' + (i + 1) + '中的名称')
-        if (!this.message.serviceDetail[i].commodityAmount && this.message.serviceDetail[i].commodityAmount != 0) return this.showToast('请填写支付信息' + (i + 1) + '中的金额')
-        if (!this.message.serviceDetail[i].commodityTax && this.message.serviceDetail[i].commodityTax != 0) return this.showToast('请填写支付信息' + (i + 1) + '中的税额')
+        if (!this.message.serviceDetail[i].commodityAmount && this.message.serviceDetail[i].commodityAmount !== 0) return this.showToast('请填写支付信息' + (i + 1) + '中的金额')
+        if (!this.message.serviceDetail[i].commodityTax && this.message.serviceDetail[i].commodityTax !== 0) return this.showToast('请填写支付信息' + (i + 1) + '中的税额')
       }
 
       if (this.message.identity === SELLER) {
@@ -716,6 +742,8 @@ export default class Message extends wepy.page {
           data: this.message,
           method: 'POST'
         })
+
+        console.log(data);
         wx.redirectTo({
           url: '../sale/sale?result=' + JSON.stringify(data)
         })
@@ -730,72 +758,93 @@ export default class Message extends wepy.page {
           url: '../addtionalMessage/addtionalMessage?message=' + JSON.stringify(this.message)
         })
       }
+    },
+
+    handleSaveAccountInvoice() {
+      if (this.message.identity === PURCHASER) {
+        wx.navigateTo({
+          url: '../addtionalMessage/addtionalMessage?type=account&message=' + JSON.stringify(this.message)
+        })
+      }
+      // TODO:
+    },
+    handleDeleteAccountInvoice() {
+      // TODO:
     }
   }
 
   onLoad(options) {
-    // this.company = wepy.$store.getState().company.defaultCompany
-    // wx.clearStorage()
-    // wx.setStorage({
-    //   key: 'registerQualificationStatus', data: this.company.registerQualificationStatus
-    // })
-
-    const invoiceMessage = {
-      AmountInFiguers: "5.15",
-      CommodityAmount: [{
-        word: "12345.89",
-        row: "1"
-      }, {
-        word: "12345.89",
-        row: "1"
-      }],
-      CommodityName: [
-        {
-        word: "货物可乐",
-        row: "1"
-      },
-        {
-        word: "货物可乐",
-        row: "1"
-      }
-    ],
-      CommodityTax: [{
-          word: "0.00",
-          row: "2"
-        },
-        {
-          word: "0.00",
-          row: "2"
-        }],
-      InvoiceDate: "2017年09月01日",
-      InvoiceNum: "00593803",
-      InvoiceType: "专用发票",
-      PurchaserAddress: ";北京市海淀区查石口路号天信息甲18就66888",
-      PurchaserBank: "测试京市海淀区查石口路甲18号就天信息;北",
-      PurchaserName: "航天信息份有限公司",
-      SellerName: "航天信息股份有限公司",
+    if (options.account) {
+      this.message = JSON.parse(options.account).message
+      this.company = JSON.parse(options.account).company
+      wx.removeStorage({
+        key: 'addtionalMessage'
+      })
+      wx.setStorage({
+        key: 'registerQualificationStatus', data: this.company.registerQualificationStatus
+      })
+      this.currentType = 'account'
+      wx.setNavigationBarTitle({
+        title: '编辑发票信息'
+      })
+      return
     }
 
-    this.company = {
-      id: 2,
-      name: '航天信息份有限公司',
-      contactName: 'embark',
-      registerQualificationStatus: false,
-      registerNum: '1213',
-      contactPhone: '12345678910'
-    }
+    this.company = wepy.$store.getState().company.defaultCompany
+    wx.removeStorage({
+      key: 'addtionalMessage'
+    })
+    wx.setStorage({
+      key: 'registerQualificationStatus', data: this.company.registerQualificationStatus
+    })
 
-    // if (!options.message) {
-    //   this.message = {
-    //     "no": wepy.$store.getState().userInfo.no, //微信id
-    //     "id": this.company.id,  //公司id
-    //     serviceDetail: [{}],
-    //     invoiceDate: this.formatDate(new Date()),
-    //     invoiceType: OTHER_INVOICE,
+    // const invoiceMessage = {
+    //   AmountInFiguers: "5.15",
+    //   CommodityAmount: [{
+    //     word: "12345.89",
+    //     row: "1"
+    //   }, {
+    //     word: "12345.89",
+    //     row: "1"
+    //   }],
+    //   CommodityName: [
+    //     {
+    //     word: "货物可乐",
+    //     row: "1"
+    //   },
+    //     {
+    //     word: "货物可乐",
+    //     row: "1"
     //   }
-    // } else {
-      // const invoiceMessage = JSON.parse(options.message)
-       // 发票识别后的数据不够直观，重整改数据
+    // ],
+    //   CommodityTax: [{
+    //       word: "0.00",
+    //       row: "2"
+    //     },
+    //     {
+    //       word: "0.00",
+    //       row: "2"
+    //     }],
+    //   InvoiceDate: "2017年09月01日",
+    //   InvoiceNum: "00593803",
+    //   InvoiceType: "专用发票",
+    //   PurchaserAddress: ";北京市海淀区查石口路号天信息甲18就66888",
+    //   PurchaserBank: "测试京市海淀区查石口路甲18号就天信息;北",
+    //   PurchaserName: "航天信息份有限公司",
+    //   SellerName: "航天信息股份有限公司",
+    // }
+
+    if (!options.message) {
+      this.message = {
+        "no": wepy.$store.getState().userInfo.no, //微信id
+        "id": this.company.id,  //公司id
+        serviceDetail: [{}],
+        invoiceDate: this.formatDate(new Date()),
+        invoiceType: OTHER_INVOICE,
+      }
+    } else {
+      const invoiceMessage = JSON.parse(options.message)
+    //    // 发票识别后的数据不够直观，重整改数据
       let resortServiceDetail = []
       invoiceMessage.CommodityName.forEach((item, index) => {
         const singleDetail = {
@@ -810,7 +859,7 @@ export default class Message extends wepy.page {
       InvoiceType = InvoiceType === '专用发票' ? SPECIAL_INVOICE : (InvoiceType === '普通发票？' ? PLAIN_INVOICE : OTHER_INVOICE)
 
       this.message = {
-        // "no": wepy.$store.getState().userInfo.no, //微信id
+        "no": wepy.$store.getState().userInfo.no, //微信id
         "id": this.company.id,  //公司id
         "amountInFiguers": AmountInFiguers, //价税合计
         "serviceDetail": resortServiceDetail,  //信息详情
@@ -820,7 +869,7 @@ export default class Message extends wepy.page {
         "purchaserName": PurchaserName,
         "sellerName": SellerName,
       }
-    // }
+    }
 
     if (this.company.name === this.message.PurchaserName) {
       this.message.identity = PURCHASER

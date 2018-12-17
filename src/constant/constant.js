@@ -8,7 +8,7 @@ export const URL = {
   addCompany: HOST + '/api/user/add/company',  //增加公司信息
   deleteCompany: HOST + '/api/user/remove/company',  //删除公司信息
   updateCompany: HOST + '/api/user/update/company',  //更新公司信息
-  addInvoice: HOST + '/api/user/add/invoice',  //更新公司信息
+  addInvoice: HOST + '/api/user/add/invoice',  //发票信息转换
   checkInvoice: HOST + '/api/user/check/invoice',  //检验某公司是否识别过该发票
   getInvoiceInfo: HOST + '/getInvoiceInfo',  //根据公司名称查询纳税人识别号,
   getOpenId: HOST + '/api/wechat/auth',  //获取openid

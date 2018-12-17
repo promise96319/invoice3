@@ -66,18 +66,21 @@ image {
     <button plain @tap="hanldeSavePic" class="save-pic">保存</button>
     <button plain @tap="handleCancel">回到主页</button>
   </view>
+
+  <van-dialog id="van-dialog"/>
 </view>
 </template>
 
 <script>
 import wepy from 'wepy'
+import Dialog from '../../components/van/dialog/dialog'
 
 export default class Purchase extends wepy.page {
   config = {
-    navigationBarTitleText: '凭证'
-  }
-  components = {
-
+    navigationBarTitleText: '凭证',
+    usingComponents: {
+      "van-dialog": "/components/van/dialog/index",
+    },
   }
 
   data = {
@@ -90,6 +93,24 @@ export default class Purchase extends wepy.page {
 
   methods = {
     async hanldeSavePic () {
+      const { authSetting } = await wepy.getSetting()
+      let isAgree = authSetting['scope.writePhotosAlbum']
+
+      if (isAgree === false) {
+        Dialog.confirm({
+          title: '温馨提示',
+          message: '请授权允许保存图片到相册',
+          confirmButtonOpenType: 'openSetting',
+          confirmButtonText: '授权'
+        }).then((res) => {
+          isAgree = true
+        }).catch((err) => {
+          isAgree = false
+        })
+      }
+
+      if (isAgree === false) return
+
       const { path } = await wepy.getImageInfo({src: this.tempFilePath})
       const { errMsg } = await wepy.saveImageToPhotosAlbum({filePath: path})
       if (errMsg === 'saveImageToPhotosAlbum:ok') {
@@ -387,24 +408,27 @@ export default class Purchase extends wepy.page {
 
     ctx.draw(true, () => {
       this.imageHeight = cal(120) + (7 + this.result.subjects.length) * cal(36)
-      wx.canvasToTempFilePath({
-          x: 0,
-          y: 0,
-          width: cal(750),
-          height: cal(120) + (7 + this.result.subjects.length) * cal(36),
-          fileType: 'jpg',
-          quality: 0.5,
-          canvasId: 'canvasId',//canvasId和标签里面的id对应
-          success: (res) => {
-              wx.hideToast()
-              //将获取到的图片临时路径set到canvasSaveimg中
-              this.tempFilePath = res.tempFilePath
-              this.$apply()
-          },
-          fail: (err) => {
-            console.log(err);
-          }
-      })
+      // TODO：当手机比较卡顿的时候，生成的发票会有黑屏的bug，但是无法重现这个bug，初步判定为异步问题
+      setTimeout(() => {
+        wx.canvasToTempFilePath({
+            x: 0,
+            y: 0,
+            width: cal(750),
+            height: cal(120) + (7 + this.result.subjects.length) * cal(36),
+            fileType: 'jpg',
+            quality: 0.5,
+            canvasId: 'canvasId',//canvasId和标签里面的id对应
+            success: (res) => {
+                wx.hideToast()
+                //将获取到的图片临时路径set到canvasSaveimg中
+                this.tempFilePath = res.tempFilePath
+                this.$apply()
+            },
+            fail: (err) => {
+              console.log(err);
+            }
+        })
+      }, 500)
     })
   }
 

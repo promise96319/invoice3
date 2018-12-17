@@ -72,7 +72,7 @@
     <image class="userinfo-avatar" src="{{ userInfo.avatarUrl }}" background-size="cover" />
     <view class="user-detail">
       <view class="userinfo-nickname">{{ userInfo.nickName }}</view>
-      <view class="telphone-num">手机号：{{ userInfo.phone }}<van-icon name="edit" class="edit-icon"/></view>
+      <view class="telphone-num" @tap="handleEditPhoneNum">手机号：{{ userInfo.phone }}<van-icon name="edit" class="edit-icon"/></view>
     </view>
   </view>
 
@@ -86,6 +86,25 @@
 
   <view @tap="handleAddCompany" class="add-company"><van-icon name="add-o"/>绑定新公司</view>
 
+  <van-dialog
+    title="手机号"
+    use-slot
+    show="{{ isEditPhoneNumShow }}"
+    showConfirmButton="{{ showConfirmButton }}"
+    show-cancel-button
+    bind:close="hideEditPhoneNumber"
+    asyncClose
+  >
+    <van-field
+      value="{{ phoneNumber }}"
+      type="number"
+      input-align="center"
+      clearable
+      placeholder="请输入手机号"
+      bind:change="handleChangeTelNum"
+    />
+  </van-dialog>
+  <van-dialog id="van-dialog" />
 </view>
 </template>
 
@@ -93,6 +112,7 @@
 import wepy from 'wepy'
 import { connect } from 'wepy-redux'
 import { URL } from '../../constant/constant'
+import Dialog from '../../components/van/dialog/dialog'
 
 @connect({
   company(state) {
@@ -117,10 +137,27 @@ export default class Home extends wepy.page {
       "van-icon": "/components/van/icon/index",
       "van-radio": "/components/van/radio/index",
       "van-radio-group": "/components/van/radio-group/index",
+      "van-dialog": "/components/van/dialog/index",
+      "van-field": "/components/van/field/index",
     },
   }
 
   data = {
+    isEditPhoneNumShow: false,
+    phoneNumber: ''
+  }
+
+  computed = {
+    showConfirmButton() {
+      if (!this.phoneNumber) {
+        return false
+      }
+
+      if (!(/^((13[0-9])|(14[5,7])|(15[0-3,5-9])|(17[0,3,5-8])|(18[0-9])|166|198|199|(147))\d{8}$/.test(this.phoneNumber))) {
+        return false
+      }
+      return true
+    }
   }
 
   methods = {
@@ -139,72 +176,54 @@ export default class Home extends wepy.page {
       })
     },
     toggleDefaultCompany (item) {
-      const _self = this
-      wx.showModal({
+      if (item.name === wepy.$store.getState().company.defaultCompany.name) return
+      Dialog.confirm({
         title: '选择默认公司',
-        content: '您选择的默认公司是' + item.name,
-        success(res) {
-          if (res.confirm) {
-            wepy.$store.dispatch({
-              type: 'UPDATEDEFAULTCOMPANY',
-              payload: item
-            })
-            wx.setStorage({
-              key: 'defaultCompany',
-              data: item
-            })
-          }
-        }
+        message: '您确定选择「' + item.name + '」作为发票识别的默认公司吗?',
+      }).then(() => {
+        wepy.$store.dispatch({
+          type: 'UPDATEDEFAULTCOMPANY',
+          payload: item
+        })
+        wx.setStorage({
+          key: 'defaultCompany',
+          data: item
+        })
+      }).catch(() => {
+        Dialog.close()
       })
-    }
+    },
+    handleEditPhoneNum() {
+      this.isEditPhoneNumShow = true
+    },
+    async hideEditPhoneNumber(e) {
+      if (e.detail === 'confirm') {
+        const userInfo = wepy.$store.getState().userInfo
+        userInfo.phone = this.phoneNumber
+
+        await wepy.request({
+          url: URL.saveUserInfo,
+          data: userInfo,
+          method: 'POST'
+        })
+
+        wepy.$store.dispatch({
+          type: 'UPDATEUSERINFO',
+          payload: userInfo
+        })
+        this.phoneNumber = ''
+        this.isEditPhoneNumShow = false
+        this.$apply()
+      } else {
+        this.isEditPhoneNumShow = false
+      }
+    },
+    handleChangeTelNum(e) {
+      this.phoneNumber = e.detail
+    },
   }
 
   async onLoad() {
-    wx.getStorage({
-      key: 'defaultCompany',
-      success(res) {
-        wepy.$store.dispatch({
-          type: 'UPDATEDEFAULTCOMPANY',
-          payload: res.data
-        })
-      },
-      fail(err) {
-        console.log('err', err);
-      }
-    })
-    // if (wepy.$store.getState().userInfo.no) return
-    wx.showToast({
-      title: '获取信息...',
-      icon: 'loading'
-    })
-
-    this.getTotalUserInfo(wepy.$store.getState().userInfo)
-  }
-
-  // 根据用户基本信息获取唯一id和公司信息
-  async getTotalUserInfo(userInfo) {
-    const { code } = await wepy.login()
-    if (!code) return
-    // const { data: { openid } } = await wepy.request('https://api.weixin.qq.com/sns/jscode2session?appid=' + APPID + '&secret=' + SECRET + '&js_code=' + code + '&grant_type=authorization_code')
-    const { data: { openid } } = await wepy.request(URL.getOpenId + '?code=' + code)
-
-    userInfo.openid = openid
-    const { data: { no, company } } = await wepy.request({
-      url: URL.saveUserInfo,
-      data: userInfo,
-      method: 'POST'
-    })
-
-    userInfo.no = no
-    wepy.$store.dispatch({
-      type: 'UPDATEUSERINFO',
-      payload: userInfo
-    })
-
-    wepy.$store.dispatch({
-      type: 'UPDATECOMPANY',
-      payload: company
-    })
   }
 }
 </script>

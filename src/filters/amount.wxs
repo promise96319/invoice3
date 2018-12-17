@@ -1,0 +1,7 @@
+var calTotalAmount = function(invoiceArr) {
+    return 2039389
+  }
+
+module.exports = {
+  calTotalAmount: calTotalAmount,
+}

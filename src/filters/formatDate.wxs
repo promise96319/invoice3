@@ -1,0 +1,29 @@
+var getFullDate = function(timestamp) {
+      if (!timestamp) {
+        return ''
+      }
+      var time = getDate(timestamp)
+      var year = time.getFullYear()
+      var month = time.getMonth() + 1
+      month = month < 10 ? '0' + month : month
+      var date = time.getDate()
+      date = date < 10 ? '0' + date : date
+      console.log(time)
+      return year + '年' + month + '月' + date + '日'
+    }
+
+var getFullMonth = function(timestamp) {
+      if (!timestamp) {
+        return ''
+      }
+      var time = getDate(timestamp)
+      var year = time.getFullYear()
+      var month = time.getMonth() + 1
+      month = month < 10 ? '0' + month : month
+      return year + '年' + month + '月'
+    }
+
+module.exports = {
+  getFullDate: getFullDate,
+  getFullMonth: getFullDate,
+}

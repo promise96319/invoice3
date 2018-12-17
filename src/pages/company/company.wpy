@@ -176,7 +176,7 @@
       // 是否显示搜索到的相关公司信息
       showCompanyResult: false,
       // 公司名称，纳税人识别号，纳税人一般状态是否可编辑
-      isDisabled: true,
+      isDisabled: false,
     }
 
     methods = {
@@ -214,6 +214,7 @@
             content: `无法获取${_self.company.name}的纳税人识别号，请确保公司名称填写正确`,
             icon: 'none',
             showCancel: false,
+            confirmColor: '#55ACEE',
           })
           return
         }
@@ -229,6 +230,7 @@
         const _self = this
         wx.showModal({
           title: '是否放弃选择公司？',
+          confirmColor: '#55ACEE',
           success(res) {
             if (res.confirm) {
               _self.showCompanyResult = false
@@ -241,6 +243,7 @@
         const _self = this
         wx.showModal({
           content: `您当前选择的公司是：${_self.searchCompanyResult[index].unitName}`,
+          confirmColor: '#55ACEE',
           success(res) {
             if (res.confirm) {
               _self.company.registerNum = _self.searchCompanyResult[index].unitTaxNo
@@ -263,6 +266,19 @@
           })
           return
         }
+
+        const flag = wepy.$store.getState().company.company.every((item) => {
+          if (item.name === this.company.name) {
+            wx.showToast({
+              title: '您已经绑定了该公司',
+              icon: 'none',
+            })
+            return false
+          }
+          return true
+        })
+
+        if (!flag) return
 
         if (!this.company.contactName) {
           wx.showToast({
@@ -325,6 +341,7 @@
       async handleDeleteCompany() {
         const { confirm } = await wepy.showModal({
           content: '是否删除' + wepy.$store.getState().company.company[this.currentIndex].name + '及其绑定的发票信息？',
+          confirmColor: '#55ACEE',
         })
 
         if (confirm) {
@@ -336,6 +353,16 @@
               id: wepy.$store.getState().company.company[this.currentIndex].id
             },
           })
+
+          if (wepy.$store.getState().company.company[this.currentIndex].name === wepy.$store.getState().company.defaultCompany.name) {
+            wx.removeStorage({
+              key: 'defaultCompany'
+            })
+            wepy.$store.dispatch({
+              type: 'UPDATEDEFAULTCOMPANY',
+              payload: {}
+            })
+          }
 
           wepy.$store.dispatch({
             type: 'UPDATECOMPANY',
@@ -379,6 +406,8 @@
         if (invoice > 0) {
           this.isDisabled = true
         }
+      } else {
+        this.isDisabled = false
       }
     }
   }

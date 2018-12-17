@@ -61,14 +61,23 @@
       }
       .invoice-container {
         width: 650rpx;
-        height: 274rpx;
-        padding: 20rpx;
-        margin: 0 30rpx 20rpx;
+        // height: 274rpx;
+        padding: 0 20rpx;
+        // margin: 0 30rpx 20rpx;
+        height: 0;
+        margin: 0;
+        overflow: hidden;
         background-color: #fff;
         border-radius: 4rpx;
         color: rgba(102, 102, 102, 1);
         font-weight: 400;
         position: relative;
+        transition: height 0.3s ease-in-out;
+        &.fold {
+          height: 274rpx;
+          padding: 0 20rpx;
+          margin: 0 30rpx 20rpx;
+        }
         .invoice-date {
           font-size: 24rpx;
         }
@@ -139,18 +148,61 @@
       text-align: center;
       margin: 20rpx 0 60rpx;
     }
+    .footer {
+      position: fixed;
+      bottom: 0;
+      height: 112rpx;
+      background-color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20rpx 30rpx;
+      .select-all {
+        width: 300rpx;
+        font-size: 26rpx;
+        color: #666;
+        display: flex;
+        align-items: center;
+        .radio {
+          width: 26rpx;
+          height: 26rpx;
+          border-radius: 26rpx;
+          border: 1px solid rgba(102,102,102,1);
+          margin-right: 10rpx;
+          &.active {
+            border: 0;
+            background-color: #55ACEE;
+          }
+        }
+        .select-num {
+          margin-left: 40rpx;
+        }
+      }
+      .account-btn {
+        width: 308rpx;
+        height: 74rpx;
+        line-height: 74rpx;
+        margin-right: 60rpx;
+        border-radius: 8rpx;
+        background-color: #55ACEE;
+        font-size: 30rpx;
+        color: #fff;
+      }
+    }
   }
 
 </style>
 
 <template>
   <view class="total-account-container">
+
+    <wxs src='../filters/formatDate.wxs' module='formatDate' />
     <view class="total-account-header">
       <view>
-        总税额合计：<text>293938.23</text>元
+        总税额合计：<text>{{ calTotalAmount }}</text>元
       </view>
       <view>
-        发票总数：<text>293</text>张
+        发票总数：<text>{{ totalInvoiceData.length }}</text>张
       </view>
       <view class="filter" @tap="handleShowFilterPopup">
         <image src="{{ filterImg }}"/>
@@ -159,54 +211,57 @@
     </view>
 
     <view class="total-invoice-detail">
-      <view class="account-month">
-        <view class="account-month-header">
-          <view class="month">2018年<text>12月</text></view>
-          <view class="total">
-            <view>税额合计: <text>1345</text></view>元
-            <view>发票总数: <text>13</text></view>张
+      <block wx:for="{{ convertInvoiceData }}" wx:key="yearitem" wx:for-index="yearidx" wx:for-item="yearitem">
+
+        <view class="account-month" wx:for="{{ yearitem.content }}" wx:key="monthitem" wx:for-index="monthidx"  wx:for-item="monthitem">
+
+          <view class="account-month-header" @tap="handleFoldInvoice({{ yearidx }}, {{ monthidx }})">
+            <view class="month">{{ yearitem.year }}年<text>{{ monthitem.month }}月</text></view>
+            <view class="total">
+              <view>税额合计: <text>{{ monthitem.totalAmount }}</text></view>元
+              <view>发票总数: <text>{{ monthitem.invoice.length }}</text></view>张
+            </view>
           </view>
+
+          <view wx:for="{{ monthitem.invoice }}" wx:key="index" class="invoice-container {{ item.selected && active !== 0 ? 'selected' : '' }} {{ item.isUnfolded ? 'fold': '' }}" @tap="handleChooseInvoice({{ yearidx }}, {{ monthidx }}, {{ index }})">
+            <view class="invoice-date">开票日期: {{ formatDate.getFullDate(item.invoiceDate) }}</view>
+            <view class="company-container">
+              <view class="company-name">{{ item.identity === PURCHASER ? item.sellerName : item.purchaserName }}</view>
+              <view class="company-identity">{{ item.identity === PURCHASER ? '售' : '购'}}</view>
+            </view>
+            <view class="total-amount">价税合计：<text>{{ item.amountInFiguers }}</text></view>
+            <view class="invoice-num">No：{{ item.invoiceNum }}</view>
+            <image wx:if="{{ item.selected && active !== 0 }}" src="{{ selectedImg }}"></image>
+            <image wx:elif="{{ item.status === 'unchecked' }}" src="{{ uncheckedImg }}"></image>
+            <image wx:elif="{{ item.status === 'checkedout' }}" src="{{ checkedoutImg }}"></image>
+          </view>
+
         </view>
 
-        <view wx:for="{{ totalInvoiceData }}" wx:key="index" class="invoice-container {{ item.selected ? 'selected' : '' }}" @tap="hangleChooseInvoice({{ index }})">
-          <view class="invoice-date">开票日期: {{ item.invoiceDate }}</view>
-          <view class="company-container">
-            <view class="company-name">{{ item.identity === PURCHASER ? item.sellerName : item.purchaserName }}</view>
-            <view class="company-identity">{{ item.identity === PURCHASER ? '售' : '购'}}</view>
-          </view>
-          <view class="total-amount">价税合计：<text>{{ item.amountInFiguers }}</text></view>
-          <view class="invoice-num">No：{{ item.invoiceNum }}</view>
-          <image wx:if="{{ item.status === 'unchecked' }}" src="{{ uncheckedImg }}"></image>
-          <image wx:elif="{{ item.status === 'checkedout' }}" src="{{ checkedoutImg }}"></image>
-        </view>
-      </view>
+      </block>
 
-      <view class="account-month">
-        <view class="account-month-header">
-          <view class="month">2018年<text>11月</text></view>
-          <view class="total">
-            <view>税额合计: <text>1345</text></view>元
-            <view>发票总数: <text>13</text></view>张
-          </view>
-        </view>
-
-        <view wx:for="{{ totalInvoiceData }}" wx:key="index" class="invoice-container">
-          <view class="invoice-date">开票日期: {{ item.invoiceDate }}</view>
-          <view class="company-container">
-            <view class="company-name">{{ item.identity === PURCHASER ? item.sellerName : item.purchaserName }}</view>
-            <view class="company-identity">{{ item.identity === PURCHASER ? '售' : '购'}}</view>
-          </view>
-          <view class="total-amount">价税合计：<text>{{ item.amountInFiguers }}</text></view>
-          <view class="invoice-num">No：{{ item.invoiceNum }}</view>
-          <image wx:if="{{ item.status === 'unchecked' }}" src="{{ uncheckedImg }}"></image>
-          <image wx:elif="{{ item.status === 'checkedout' }}" src="{{ checkedoutImg }}"></image>
-        </view>
-      </view>
     </view>
 
     <view class="no-more">没有更多内容了~</view>
 
-    <!-- 筛选弹出层 -->
+    <view class="footer" wx:if="{{ active === 1 && selectedInvoice.length > 0 }}">
+      <view class="select-all" @tap="handleSelectAll()">
+        <view class="radio {{ selectedInvoice.length === totalInvoiceData.length ? 'active' : '' }}"></view>
+        <view>全选</view>
+        <view class="select-num">已选择 {{ selectedInvoice.length }} 张</view>
+      </view>
+      <button class="account-btn" @tap="handleCheckout">结账</button>
+    </view>
+
+    <view class="footer" wx:if="{{ active === 2 && selectedInvoice.length > 0 }}">
+      <view class="select-all" @tap="handleSelectAll()">
+        <view class="radio {{ selectedInvoice.length === totalInvoiceData.length ? 'active' : '' }}"></view>
+        <view>全选</view>
+        <view class="select-num">已选择 {{ selectedInvoice.length }} 张</view>
+      </view>
+      <button class="account-btn" @tap="handleAntiCheckout">反结账</button>
+    </view>
+
   </view>
 </template>
 
@@ -225,37 +280,50 @@
   export default class Account extends wepy.component {
     props = {
       active: Number,
+      filterCate: Object,
     }
 
     computed = {
       totalInvoiceData() {
-        let currentInvoiceData = []
         switch (this.active) {
           case 0:
-            currentInvoiceData = wepy.$store.getState().account
+            this.currentInvoiceData = wepy.$store.getState().account
             break
           case 1:
-            currentInvoiceData = wepy.$store.getState().account.filter((item) => {
+            this.currentInvoiceData = wepy.$store.getState().account.filter((item) => {
               return item.status === 'unchecked'
             })
             break
           case 2:
-            currentInvoiceData = wepy.$store.getState().account.filter((item) => {
+            this.currentInvoiceData = wepy.$store.getState().account.filter((item) => {
               return item.status === 'checkedout'
             })
             break
         }
-        return currentInvoiceData
-      },
-    }
 
-    components = {
+        this.currentInvoiceData  = this.handleFilterCondition(this.currentInvoiceData, this.filterCate)
+
+        return this.currentInvoiceData
+      },
+      calTotalAmount() {
+        let total = 0
+        this.totalInvoiceData.forEach((item) => {
+          total += Number(item.amountInFiguers)
+        })
+        return total
+      },
+      selectedInvoice() {
+        return this.totalInvoiceData.filter((item) => {
+          return item.selected
+        })
+      }
     }
 
     data = {
       PURCHASER,
       SELLER,
       filterImg: '../../assets/images/filter.png',
+      selectedImg: '../../assets/images/selected.png',
       uncheckedImg: '../../assets/images/unchecked.png',
       checkedoutImg: '../../assets/images/checkedout.png',
 
@@ -263,7 +331,8 @@
         id: '2',
       },
 
-      selectedInvoice: []
+      currentInvoiceData: [],
+      convertInvoiceData: [],
 
     }
 
@@ -271,10 +340,192 @@
       handleShowFilterPopup () {
         this.$emit('showFilterPopup')
       },
-      hangleChooseInvoice(index) {
-        if (this.active === 0) return
-        this.totalInvoiceData[index].selected = !this.totalInvoiceData[index].selected
+      handleFoldInvoice(yearidx, monthidx) {
+        if (this.convertInvoiceData[yearidx].content[monthidx].invoice[0].isUnfolded) {
+          this.convertInvoiceData[yearidx].content[monthidx].invoice.forEach((item) => {
+            item.isUnfolded = false
+          })
+        }
+
+        this.currentInvoiceData.forEach((item) => {
+          item.isUnfolded = false
+        })
+
+        this.convertInvoiceData[yearidx].content[monthidx].invoice.forEach((item) => {
+          item.isUnfolded = true
+        })
+      },
+      handleChooseInvoice(yearidx, monthidx, index) {
+        if (this.active === 0) {
+          const account = {
+            company: this.company,
+            // TODO:
+            message: this.convertInvoiceData[yearidx].content[monthidx].invoice[index]
+          }
+          wx.navigateTo({
+            url: '../../pages/invoice/invoice?account=' + JSON.stringify(account)
+          })
+        } else {
+          // this.currentInvoiceData[index].selected = !this.currentInvoiceData[index].selected
+          this.convertInvoiceData[yearidx].content[monthidx].invoice[index].selected = !this.convertInvoiceData[yearidx].content[monthidx].invoice[index].selected
+        }
+      },
+      handleSelectAll() {
+        if (this.selectedInvoice.length === this.currentInvoiceData.length) {
+          this.currentInvoiceData = this.currentInvoiceData.map((item) => {
+            item.selected = false
+          })
+        } else {
+          this.currentInvoiceData = this.currentInvoiceData.map((item) => {
+            item.selected = true
+          })
+        }
+      },
+      handleCheckout() {
+        let amountInFiguers = 0
+        this.selectedInvoice.forEach((item) => {
+          amountInFiguers += Number(item.amountInFiguers)
+        })
+        wx.showModal({
+          title: '结账',
+          content: `已选发票:${this.selectedInvoice.length}张,税额合计:${amountInFiguers}`
+        })
+      },
+      handleAntiCheckout() {
+        let amountInFiguers = 0
+        this.selectedInvoice.forEach((item) => {
+          amountInFiguers += Number(item.amountInFiguers)
+        })
+        wx.showModal({
+          title: '反结账',
+          content: `已选发票:${this.selectedInvoice.length}张,税额合计:${amountInFiguers}`
+        })
       }
+    }
+
+    // 筛选功能
+    handleFilterCondition(data, filterCate) {
+      data = data.filter((invoice) => {
+
+        let flag = true
+
+        // 当为会计所属期时
+        if (filterCate.isAccountPeriod) {
+          // TODO:accountPeriod
+
+        } else {
+          const minUploadedDate = filterCate.minUploadedDate || 0
+          const maxUploadedDate = filterCate.maxUploadedDate || Number.MAX_VALUE
+          if (invoice.createdAt > Math.max(minUploadedDate, maxUploadedDate) || invoice.createdAt < Math.min(minUploadedDate, maxUploadedDate)) {
+             flag = false
+          }
+        }
+
+        // 公司名进行搜索
+        if (filterCate.companyKeyword && invoice.purchaserName.indexOf(filterCate.companyKeyword) === -1 && invoice.sellerName.indexOf(filterCate.companyKeyword) === -1 ) {
+          flag = false
+        }
+
+        // 公司身份
+        if (filterCate.identity === PURCHASER && invoice.identity !== PURCHASER) {
+          flag = false
+        }
+        if (filterCate.identity === SELLER && invoice.identity !== SELLER) {
+          flag = false
+        }
+
+        // 发票号码
+        if (filterCate.invoiceNum && invoice.invoiceNum.indexOf(filterCate.invoiceNum) === -1) {
+          flag = false
+        }
+
+        // 开票日期
+        const minBillingDate = filterCate.minBillingDate || 0
+        const maxBillingDate = filterCate.maxBillingDate || Number.MAX_VALUE
+        // invoice.invoiceDate = invoice.invoiceDate || 0
+        // const invoiceDate = Date.parse(new Date(invoice.invoiceDate))
+        // if (invoiceDate > Math.max(minBillingDate, maxBillingDate) || invoiceDate < Math.min(minBillingDate, maxBillingDate)) {
+        //    flag = false
+        // }
+        if (invoice.invoiceDate > Math.max(minBillingDate, maxBillingDate) || invoice.invoiceDate < Math.min(minBillingDate, maxBillingDate)) {
+           flag = false
+        }
+
+        // 价格
+        const minPrice = filterCate.minPrice || 0
+        const maxPrice = filterCate.maxPrice || Number.MAX_VALUE
+        if (invoice.amountInFiguers > Math.max(minPrice, maxPrice) || invoice.amountInFiguers < Math.min(minPrice, maxPrice)) {
+           flag = false
+        }
+
+        return  flag
+      })
+
+      // 按年月分为模块  ===> 保存每年每月的发票
+      // [
+      //   {
+      //     year: 2018,
+      //     content: [{
+      //       month: 12,
+      //       invoice: []
+      //       totalAmount: 0
+      //     }]
+      //   },
+      // ]
+      const finalInvoiceArr = []
+
+      // 上传日期排序还是会计所属期
+      if (filterCate.isAccountPeriod) {
+        // TODO:
+      } else {
+        data.sort((item1, item2) => {
+          return item2.createdAt - item1.createdAt
+        })
+
+        data.forEach((invoice) => {
+          const date = new Date(invoice.createdAt)
+          const year = date.getFullYear()
+          const month = date.getMonth() + 1
+          const yearIndex = finalInvoiceArr.findIndex((yearObj) => {
+            return yearObj.year === year
+          })
+          if (yearIndex !== -1) {
+            const monthIndex = finalInvoiceArr[yearIndex].content.findIndex((monthObj) => {
+              return monthObj.month === month
+            })
+            if (monthIndex !== -1) {
+              finalInvoiceArr[yearIndex].content[monthIndex].invoice.push(invoice)
+              finalInvoiceArr[yearIndex].content[monthIndex].totalAmount += Number(invoice.amountInFiguers)
+            } else {
+              finalInvoiceArr[yearIndex].content.push({
+                month: month,
+                invoice: [
+                  invoice
+                ],
+                totalAmount: Number(invoice.amountInFiguers),
+              })
+            }
+          } else {
+            finalInvoiceArr.push({
+              year: year,
+              content: [
+                {
+                  month: month,
+                  invoice: [
+                    invoice
+                  ],
+                  totalAmount: Number(invoice.amountInFiguers),
+                }
+              ]
+            })
+          }
+        })
+      }
+      console.log('被执行了');
+
+      this.convertInvoiceData = finalInvoiceArr
+
+      return data
     }
 
     async onLoad () {
